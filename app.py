@@ -2,6 +2,14 @@ import streamlit as st
 from pathlib import Path
 import json
 import pandas as pd
+from backtest import PriceData, SignalStrategy, TransactionCostModel, BacktestEngine, PerformanceStats
+import matplotlib.pyplot as plt
+
+# Cache price data
+@st.cache_data
+def get_price_data():
+    from backtest import PriceData  # or adjust the import path
+    return PriceData("SPY", "2020-01-01", "2024-12-31").data
 
 st.set_page_config(page_title="Quant Dashboard", layout="wide")
 
@@ -20,15 +28,30 @@ tabs = [
 ]
 selection = st.sidebar.radio("Go to", tabs)
 
-def load_json_result(file_path):
-    try:
-        with open(file_path) as f:
-            return json.load(f)
-    except:
-        return None
-
 if selection == "Performance Summary":
     st.title("📈 Performance Summary")
+
+    # Run backtest
+    prices = PriceData("SPY", "2020-01-01", "2024-12-31").data
+    price_series = prices["Price"]  # Ensure this is a Series
+    strategy = SignalStrategy()
+    cost_model = TransactionCostModel()
+    engine = BacktestEngine(price_series, strategy, cost_model)
+    equity_curve, returns = engine.run()
+    stats = PerformanceStats(equity_curve, returns).compute()
+
+    # Plot equity curve
+    st.subheader("Equity Curve")
+    fig, ax = plt.subplots()
+    equity_curve.plot(ax=ax)
+    ax.set_ylabel("Portfolio Value ($)")
+    ax.set_title("Equity Curve")
+    st.pyplot(fig)
+
+    # Show stats
+    st.subheader("Performance Statistics")
+    stats_df = pd.DataFrame(stats, index=["Metrics"]).T
+    st.table(stats_df)
 
 elif selection == "Strategy Logic":
     st.title("🧠 Strategy Logic & Assumptions")
