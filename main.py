@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from datasets.get_yfinance_data import PriceData
 
 class SignalStrategy:
     def generate_signals(self, prices: pd.Series) -> pd.Series:
@@ -23,7 +24,7 @@ class BacktestEngine:
 
     def run(self):
         signals = self.strategy.generate_signals(self.prices)
-        returns = self.prices.pct_change().fillna(0)
+        returns = self.prices.squeeze().pct_change().fillna(0)
         positions = signals.copy()
         gross_returns = positions.shift(1).fillna(0) * returns
         cost_penalty = self.cost_model.apply_costs(positions)
@@ -49,11 +50,15 @@ class PerformanceStats:
         }
 
 
-if __name__ == 'main':
+def main():
+    prices = PriceData("SPY", "2020-01-01", "2024-12-31").data
     strategy = SignalStrategy()
     cost_model = TransactionCostModel()
-    engine = BacktestEngine(prices, strategy, cost_model)
-    equity, rets = engine.run()
+    engine = BacktestEngine(prices["Price"], strategy, cost_model)
+    equity, returns = engine.run()
 
-    stats = PerformanceStats(equity, rets).compute()
+    stats = PerformanceStats(equity, returns).compute()
     print(stats)
+
+if __name__ == "__main__":
+    main()
