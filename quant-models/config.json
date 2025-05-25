@@ -2,5 +2,9 @@
     "algorithm-language": "Python",
     "parameters": {},
     "description": "",
-    "local-id": 783559482
+    "local-id": 783559482,
+    "cloud-id": 23193612,
+    "organization-id": "697dd57563dca87dec582aef3eecad61",
+    "python-venv": 1,
+    "encrypted": false
 }

@@ -9,7 +9,7 @@ class Quantmodels(QCAlgorithm):
         self.set_start_date(2013, 10, 7)  # Set Start Date
         self.set_end_date(2013, 10, 11)  # Set End Date
         self.set_cash(100000)  # Set Strategy Cash
-        self.add_equity("SPY", Resolution.DAILY)
+        self.add_equity("SPY", Resolution.Daily)
 
     def on_data(self, data: Slice):
         """on_data event is the primary entry point for your algorithm. Each new data point will be pumped in here.
