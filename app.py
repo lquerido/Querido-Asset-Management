@@ -7,8 +7,7 @@ st.set_page_config(page_title="Quant Dashboard", layout="wide")
 
 st.sidebar.title("Navigation")
 tabs = [
-    "Live Results",
-    "Backtest Results",
+    "Performance Summary",
     "Strategy Logic",
     "Data Workflow",
     "Performance Attribution",
@@ -28,31 +27,8 @@ def load_json_result(file_path):
     except:
         return None
 
-if selection == "Live Results":
-    st.title("📈 Live Paper Trading Results")
-    results = load_json_result("results/live_results.json")
-    if results:
-        equity = results["Charts"]["Strategy Equity"]["Series"]["Equity"]["Values"]
-        equity_series = pd.Series([point["y"] for point in equity],
-                                  index=pd.to_datetime([point["x"] for point in equity]))
-        st.line_chart(equity_series)
-        st.subheader("Stats")
-        st.json(results["Statistics"])
-    else:
-        st.warning("No live results found.")
-
-elif selection == "Backtest Results":
-    st.title("🧪 Backtest Results")
-    results = load_json_result("results/backtest_results.json")
-    if results:
-        equity = results["Charts"]["Strategy Equity"]["Series"]["Equity"]["Values"]
-        equity_series = pd.Series([point["y"] for point in equity],
-                                  index=pd.to_datetime([point["x"] for point in equity]))
-        st.line_chart(equity_series)
-        st.subheader("Stats")
-        st.json(results["Statistics"])
-    else:
-        st.warning("No backtest results found.")
+if selection == "Performance Summary":
+    st.title("📈 Performance Summary")
 
 elif selection == "Strategy Logic":
     st.title("🧠 Strategy Logic & Assumptions")
@@ -76,7 +52,7 @@ elif selection == "Capital Allocation":
 
 elif selection == "Investment Philosophy":
     st.title("🧭 Investment Philosophy & Mandate")
-    st.markdown(Path("docs/investment_philosophy.md").read_text())
+    st.markdown(Path("investment_philosophy.md").read_text())
 
 elif selection == "Research & Commentary":
     st.title("📰 Research & Market Commentary")
