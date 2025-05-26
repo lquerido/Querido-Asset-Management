@@ -14,3 +14,8 @@ class PriceData:
         df.index.name = "Date"
         return df
 
+if __name__ == "__main__":
+    ticker = yf.Ticker("AAPL")
+    sector = ticker.info.get("sector", "Unknown")
+    [print(f"{k}: {v}") for k, v in ticker.info.items()]
+    print(f"AAPL Sector: {sector}")
