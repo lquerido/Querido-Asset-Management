@@ -4,6 +4,20 @@ from pandas_datareader import data as web
 import datetime
 import yfinance as yf
 
+
+class PriceData:
+    def __init__(self, ticker="SPY", start="2018-01-01", end="2024-12-31"):
+        self.ticker = ticker
+        self.start = start
+        self.end = end
+        self.data = self.fetch()
+
+    def fetch(self):
+        df = yf.download(self.ticker, start=self.start, end=self.end)
+        df = df[["Close"]].rename(columns={"Close": "Price"})
+        df.index.name = "Date"
+        return df
+
 class MacroeconomicStrategy:
     def __init__(self, indicator: str, threshold: float, tickers: list, start: str, end: str):
         self.indicator = indicator
@@ -79,8 +93,8 @@ class PerformanceStats:
         sharpe = (ann_return - self.rf_rate) / vol if vol > 0 else np.nan
         drawdown = (self.equity_curve / self.equity_curve.cummax() - 1).min()
         tracking_error = np.std(self.returns - self.benchmark_returns) * np.sqrt(252)
-        beta = np.cov(self.returns, self.benchmark_returns)[0, 1] / np.var(self.benchmark_returns)
-        alpha = ann_return - self.rf_rate - beta * (self.benchmark_returns.mean() * 252 - self.rf_rate)
+        # beta = np.cov(self.returns, self.benchmark_returns)[0, 1] / np.var(self.benchmark_returns)
+        # alpha = ann_return - self.rf_rate - beta * (self.benchmark_returns.mean() * 252 - self.rf_rate)
         upside = self.returns[self.benchmark_returns > 0].mean() / self.benchmark_returns[self.benchmark_returns > 0].mean()
         downside = self.returns[self.benchmark_returns < 0].mean() / self.benchmark_returns[self.benchmark_returns < 0].mean()
 
@@ -90,8 +104,8 @@ class PerformanceStats:
             "Sharpe Ratio": sharpe,
             "Max Drawdown": drawdown,
             "Tracking Error": tracking_error,
-            "Beta": beta,
-            "Alpha": alpha,
+            # "Beta": beta,
+            # "Alpha": alpha,
             "Upside Capture": upside,
             "Downside Capture": downside
         }
