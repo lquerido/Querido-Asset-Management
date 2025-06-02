@@ -1,7 +1,7 @@
 import yfinance as yf
 import pandas as pd
 
-class PriceData:
+class GetPriceSeries:
     def __init__(self, ticker="SPY", start="2018-01-01", end="2024-12-31"):
         self.ticker = ticker
         self.start = start
