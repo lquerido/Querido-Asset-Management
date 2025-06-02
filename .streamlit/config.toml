@@ -1,6 +1,6 @@
 [theme]
-base="dark"
-primaryColor="#4ecdc4"
-backgroundColor="#1e1e1e"
-secondaryBackgroundColor="#2e2e2e"
-textColor="#f8f8f8"
+primaryColor = "#004E89"       # Deep blue for highlights
+backgroundColor = "#F8F9FA"    # Soft light gray
+secondaryBackgroundColor = "#FFFFFF"  # Clean white for cards/panels
+textColor = "#212529"          # Near-black for legibility
+font = "sans serif"
