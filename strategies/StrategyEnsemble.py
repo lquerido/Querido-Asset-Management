@@ -1,4 +1,4 @@
-from strategies.BuyLowSellHigh import MeanReversionStrategy
+from strategies.MeanReversionStrategy import MeanReversionStrategy
 from strategies.MomentumStrategy import MomentumStrategy
 from datasets.GetPriceSeries import GetPriceSeries
 

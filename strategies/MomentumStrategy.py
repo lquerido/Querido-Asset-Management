@@ -1,4 +1,5 @@
-from strategies import BaseStrategy
+from strategies.BaseStrategy import BaseStrategy
+from datasets.GetPriceSeries import GetPriceSeries
 
 class MomentumStrategy(BaseStrategy):
     def __init__(self, data: dict, lookback: int = 20, threshold: float = 0.02):
@@ -6,7 +7,7 @@ class MomentumStrategy(BaseStrategy):
         self.lookback = lookback
         self.threshold = threshold
 
-    def generate_positions(self) -> dict:
+    def generate_position(self) -> dict:
         positions = {}
         for ticker, series in self.data.items():
             if len(series) < self.lookback + 1:
@@ -24,3 +25,11 @@ class MomentumStrategy(BaseStrategy):
                 positions[ticker] = 0.0  # Neutral
 
         return positions
+
+
+if __name__ == '__main__':
+    tickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA']
+    prices = GetPriceSeries(ticker=tickers, start="2020-01-01", end="2024-12-31").fetch()
+    strategy = MomentumStrategy(prices, lookback=20, threshold=0.02)
+    current_signal = strategy.generate_position()
+    print("Current Signal:", current_signal)

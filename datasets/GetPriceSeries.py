@@ -6,7 +6,7 @@ class GetPriceSeries:
         self.ticker = ticker
         self.start = start
         self.end = end
-        self.data = self.fetch()
+        # self.data = self.fetch()
 
     def fetch(self):
         df = yf.download(self.ticker, start=self.start, end=self.end)
