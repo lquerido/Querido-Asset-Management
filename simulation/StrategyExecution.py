@@ -22,15 +22,17 @@ class TransactionCostModel:
         return trades * (self.slippage + self.trading_fee)
 
 class BacktestEngine:
-    def __init__(self, tickers, strategy, cost_model, start_date, end_date, rebalancer=NaiveFullRebalancer, initial_cash=100000):
+    def __init__(self, tickers, strategy, cost_model, start_date, end_date, rebalancer=NaiveFullRebalancer, initial_cash=100000, slippage=0.001, commission=0.0005):
         self.tickers = tickers
         self.strategy = strategy
         self.cost_model = cost_model
         self.start_date = start_date
         self.end_date = end_date
-        self.initial_cash = initial_cash
+        self.balance = initial_cash
         self.rebalancer = rebalancer
         self.weights = {}
+        self.slippage = slippage
+        self.commission = commission
 
     def get_security_weights(self):
         """
@@ -42,7 +44,7 @@ class BacktestEngine:
         """
         Rebalances the portfolio to match the target weights.
         """
-        trades, rebalanced_weights = rebalancer.rebalance(current_weights, target_weights)
+        trades, rebalanced_weights = self.rebalancer().rebalance(current_weights, target_weights)
         return trades, rebalanced_weights
 
     def fetch_series(self, tickers, start, end):
@@ -50,6 +52,29 @@ class BacktestEngine:
         Fetches historical price data for the given tickers and date range.
         """
         return GetSeries(ticker=tickers, start=start, end=end)
+
+    def update_holdings_with_execution(self, trades: dict, price_row: pd.Series) -> dict:
+        for ticker, target_trade in trades.items():
+            if ticker == "CASH":
+                continue
+
+            price = price_row[ticker]
+            direction = np.sign(target_trade)
+            slippage_factor = 1 + self.slippage * direction
+            exec_price = price * slippage_factor
+            trade_value = abs(target_trade) * exec_price
+            commission = trade_value * self.commission
+
+            if direction > 0 and self.cash >= trade_value + commission:     # Todo: Fix cash allocation
+                # Buy
+                self.cash -= (trade_value + commission)
+                self.holdings[ticker] = self.holdings.get(ticker, 0) + target_trade
+            elif direction < 0 and self.holdings.get(ticker, 0) >= abs(target_trade):
+                # Sell
+                self.cash += trade_value - commission
+                self.holdings[ticker] = self.holdings.get(ticker, 0) + target_trade  # Note: target_trade is negative
+
+        return self.holdings
 
     def run(self):
         prices = self.fetch_series(self.tickers, self.start_date, self.end_date).fetch_prices()
@@ -63,26 +88,46 @@ class BacktestEngine:
             current_weights = self.get_security_weights()
             target_weights = self.strategy.aggregate_allocations()
             trades, rebalanced_weights = self.get_rebalanced_weights(current_weights, target_weights)
+            executed_weights = self.update_holdings_with_execution(trades, prices.loc[date])
+
+            for trade in trades:
+                if trade != 0:
+                    self._log_trade(date, trade, 'BUY' if trade > 0 else 'SELL', abs(trade), prices.loc[date, trade], prices.loc[date, trade], strat)
             self.weights.update(rebalanced_weights)
             print('Done')
 
 
+    def _log_trade(self, date, ticker, side, qty, signal_price, execution_price, signal):
+        self.trade_log.append({
+            "Date": date,
+            "Ticker": ticker,
+            "Side": side,
+            "Quantity": qty,
+            "Signal Price": round(signal_price, 2),
+            "Execution Price": round(execution_price, 2),
+            "Signal": signal
+        })
 
-        #     # Update open positions
-        #     for ticker, weight in weights.items():
-        #         if weight != 0:
-        #             self.open_positions[ticker] = weight
-        #     # Apply transaction costs
-        #     cost_penalty = self.cost_model.apply_costs(pd.Series(weights))
-        #     # Update equity curve and cash balance
-        #     self.update_equity_curve(returns.loc[date], cost_penalty)
-        # return #equity_curve, net_returns
+    def _log_account(self, date, prices):
+        holdings_value = sum(qty * prices[ticker] for ticker, qty in self.holdings.items() if ticker in prices)
+        total_value = self.cash + holdings_value
+        gross_exposure = sum(abs(qty * prices[ticker]) for ticker, qty in self.holdings.items() if ticker in prices)
+        net_exposure = sum(qty * prices[ticker] for ticker, qty in self.holdings.items() if ticker in prices)
+
+        self.account_history.append({
+            "Date": date,
+            "Cash": round(self.cash, 2),
+            "Holdings Value": round(holdings_value, 2),
+            "Total Value": round(total_value, 2),
+            "Gross Exposure": round(gross_exposure, 2),
+            "Net Exposure": round(net_exposure, 2)
+        })
 
 
 
-def main(tickers, composite, benchmark_ticker, start_date, end_date):
+def main(tickers, composite, benchmark_ticker, start_date, end_date, slippage=0.001, commission=0.0005):
     cost_model = TransactionCostModel()
-    engine = BacktestEngine(tickers, composite, cost_model, start_date, end_date)
+    engine = BacktestEngine(tickers, composite, cost_model, start_date, end_date, slippage=slippage, commission=commission)
     equity, returns = engine.run()
     #
     # # Benchmark = SPY
@@ -121,5 +166,13 @@ if __name__ == '__main__':
     }
 
     ensemble = StrategyEnsemble(capital_allocation)
-    main(tickers, ensemble, benchmark_ticker="SPY", start_date="2020-01-01", end_date="2024-12-31")
+    main(
+        tickers,
+        ensemble,
+        benchmark_ticker="SPY",
+        start_date="2020-01-01",
+        end_date="2024-12-31",
+        slippage=0.001,
+        commission=0.0005
+    )
     print('Ensemble Weights:', ensemble.aggregate_allocations())
