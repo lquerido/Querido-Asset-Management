@@ -8,4 +8,5 @@ class VolatilityScaledAllocator(BaseAllocator):
         active = {k: v for k, v in signals.items() if v != 0}
         inv_vol = {k: 1 / self.vol_data[k] for k in active}
         total = sum(inv_vol.values())
-        return {k: inv_vol[k] / total if k in active else 0 for k in signals}
+        weights = {k: inv_vol[k] / total if k in active else 0 for k in signals}
+        return self._add_cash_allocation(weights)

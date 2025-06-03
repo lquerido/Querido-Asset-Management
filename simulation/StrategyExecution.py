@@ -3,9 +3,10 @@ import numpy as np
 from pandas_datareader import data as web
 import datetime
 import yfinance as yf
-from datasets.GetSeries import GetPriceSeries
-from strategies.MomentumStrategy import MomentumStrategy
-
+from datasets.GetSeries import GetSeries
+from strategies.signal_generation.MomentumStrategy import MomentumStrategy
+from strategies.signal_generation.MeanReversionStrategy import MeanReversionStrategy
+from strategies.allocations.VolatilityScaledAllocator import VolatilityScaledAllocator
 
 
 class CompositeStrategy:
@@ -38,6 +39,13 @@ class BacktestEngine:
         self.strategy = strategy
         self.cost_model = cost_model
         self.initial_cash = initial_cash
+        self.open_positions = {}
+
+    def get_open_positions(self):
+        """
+        Returns the current open positions based on the strategy signals.
+        """
+        return
 
     def run(self):
         signals = self.strategy.generate_signals(self.prices)
