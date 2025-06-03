@@ -1,6 +1,6 @@
 from strategies.signal_generation.BaseStrategy import BaseStrategy
 from strategies.allocations.EqualWeightAllocator import EqualWeightAllocator
-from datasets.GetPriceSeries import GetPriceSeries
+from datasets.GetSeries import GetSeries
 
 class MeanReversionStrategy(BaseStrategy):
     """
@@ -21,7 +21,7 @@ class MeanReversionStrategy(BaseStrategy):
             if zscore < -self.bound:
                 positions[ticker] = 1.0
             elif zscore > self.bound:
-                positions[ticker] = -1.0
+                positions[ticker] = -1.0        # Todo: What do we did with sell positions? Do we close out any open positions? Do we short (perhaps need an input for say 130/30) - in which case do we need to model leverage?
             else:
                 positions[ticker] = 0.0
         return positions
@@ -29,7 +29,7 @@ class MeanReversionStrategy(BaseStrategy):
 
 if __name__ == '__main__':
     tickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA']
-    prices = GetPriceSeries(ticker=tickers, start="2020-01-01", end="2024-12-31").fetch()
+    prices = GetSeries(ticker=tickers, start="2020-01-01", end="2024-12-31").fetch_prices()
     strategy = MeanReversionStrategy(prices, lookback=20, bound=0.5)
     signals = strategy.generate_positions()
     weights = EqualWeightAllocator().allocate(signals)

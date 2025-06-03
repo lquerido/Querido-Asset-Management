@@ -3,7 +3,7 @@ import numpy as np
 from pandas_datareader import data as web
 import datetime
 import yfinance as yf
-from datasets.GetPriceSeries import GetPriceSeries
+from datasets.GetSeries import GetPriceSeries
 from strategies.MomentumStrategy import MomentumStrategy
 
 

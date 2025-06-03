@@ -1,6 +1,6 @@
 from strategies.signal_generation.BaseStrategy import BaseStrategy
 from strategies.allocations.VolatilityScaledAllocator import VolatilityScaledAllocator
-from datasets.GetPriceSeries import GetSeries
+from datasets.GetSeries import GetSeries
 
 class MomentumStrategy(BaseStrategy):
     def __init__(self, data: dict, lookback: int = 20, threshold: float = 0.02):
