@@ -3,7 +3,8 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import datetime
+import importlib
+from view_config import VIEW_STRUCTURE, VIEW_MODULES
 
 # --- DUMMY DATA SETUP ---
 def load_dummy_data():
@@ -65,25 +66,27 @@ def render_view(view):
         More information on the dashboard logic and methodology is available.
         """)
 
-# --- APP MAIN ---
-st.set_page_config(page_title="Querido Capital Dashboard", layout="wide")
+# --- Navigation ---
+main_views = list(VIEW_STRUCTURE.keys())
+cols = st.columns(len(main_views))
 
-main_tabs = [
-    "Performance Summary",
-    "Detailed Investment Performance Analysis",
-    "Investment Research",
-    "About Us"
-]
+if "selected_view" not in st.session_state:
+    st.session_state.selected_view = main_views[0]  # default
 
-cols = st.columns(len(main_tabs))
-selected_view = None
-for i, tab in enumerate(main_tabs):
-    if cols[i].button(tab):
-        selected_view = tab
+for i, view_name in enumerate(main_views):
+    if cols[i].button(view_name):
+        st.session_state.selected_view = view_name
 
-# Set default on first load
-if selected_view is None:
-    selected_view = main_tabs[0]
+selected_view = st.session_state.selected_view
 
-render_sidebar(selected_view)
-render_view(selected_view)
+# --- Subview Navigation ---
+subviews = VIEW_STRUCTURE.get(selected_view, [])
+selected_subview = st.sidebar.radio("Select View", subviews) if subviews else None
+
+# --- Load View Dynamically ---
+module_path = VIEW_MODULES.get(selected_view)
+if module_path:
+    view_module = importlib.import_module(module_path)
+    view_module.render(selected_subview)
+else:
+    st.error("View not implemented.")

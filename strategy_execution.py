@@ -130,8 +130,9 @@ def main():
     equity, returns = engine.run()
 
     # Benchmark = SPY
-    spy = yf.download("SPY", start=start_date, end=end_date)["Close"]
-    benchmark_returns = spy.pct_change().reindex(returns.index).fillna(0)
+    benchmark_ticker = "SPY"
+    spy = yf.download(benchmark_ticker, start=start_date, end=end_date)["Close"]
+    benchmark_returns = spy.pct_change()[benchmark_ticker].reindex(returns.index).fillna(0)
 
     stats = PerformanceStats(equity, returns, benchmark_returns).compute()
     print(stats)
