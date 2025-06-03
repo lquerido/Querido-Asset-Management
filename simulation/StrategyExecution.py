@@ -7,22 +7,10 @@ from datasets.GetSeries import GetSeries
 from strategies.signal_generation.MomentumStrategy import MomentumStrategy
 from strategies.signal_generation.MeanReversionStrategy import MeanReversionStrategy
 from strategies.allocations.VolatilityScaledAllocator import VolatilityScaledAllocator
+from strategies.StrategyEnsemble import StrategyEnsemble
+from strategies.InitialiseStrategy import InitialiseStrategy
+from strategies.rebalancing.NaiveFullRebalancer import NaiveFullRebalancer
 
-
-class CompositeStrategy:
-    def __init__(self, strategies, weights):
-        self.strategies = strategies
-        self.weights = weights
-
-    def generate_signals(self, prices: pd.DataFrame) -> pd.DataFrame:
-        signal_dfs = []
-        for strategy, weight in zip(self.strategies, self.weights):
-            signals = strategy.generate_signals(prices)
-            signal_dfs.append(signals * weight)
-        combined = sum(signal_dfs)
-        row_sums = combined.sum(axis=1)
-        normalized = combined.div(row_sums, axis=0).fillna(0)
-        return normalized
 
 class TransactionCostModel:
     def __init__(self, slippage=0.0005, trading_fee=0.001):
@@ -34,58 +22,104 @@ class TransactionCostModel:
         return trades * (self.slippage + self.trading_fee)
 
 class BacktestEngine:
-    def __init__(self, prices, strategy, cost_model, initial_cash=100000):
-        self.prices = prices
+    def __init__(self, tickers, strategy, cost_model, start_date, end_date, rebalancer=NaiveFullRebalancer, initial_cash=100000):
+        self.tickers = tickers
         self.strategy = strategy
         self.cost_model = cost_model
+        self.start_date = start_date
+        self.end_date = end_date
         self.initial_cash = initial_cash
-        self.open_positions = {}
+        self.rebalancer = rebalancer
+        self.weights = {}
 
-    def get_open_positions(self):
+    def get_security_weights(self):
         """
         Returns the current open positions based on the strategy signals.
         """
-        return
+        return self.weights
+
+    def get_rebalanced_weights(self, current_weights, target_weights):
+        """
+        Rebalances the portfolio to match the target weights.
+        """
+        trades, rebalanced_weights = rebalancer.rebalance(current_weights, target_weights)
+        return trades, rebalanced_weights
+
+    def fetch_series(self, tickers, start, end):
+        """
+        Fetches historical price data for the given tickers and date range.
+        """
+        return GetSeries(ticker=tickers, start=start, end=end)
 
     def run(self):
-        signals = self.strategy.generate_signals(self.prices)
-        returns = self.prices.pct_change().fillna(0)
-        weights = signals.shift(1).fillna(0)
-        portfolio_returns = (weights * returns).sum(axis=1)
-        cost_penalty = self.cost_model.apply_costs(weights.sum(axis=1))
-        net_returns = portfolio_returns - cost_penalty
-        equity_curve = (1 + net_returns).cumprod() * self.initial_cash
-        return equity_curve, net_returns
+        prices = self.fetch_series(self.tickers, self.start_date, self.end_date).fetch_prices()
+        returns = self.fetch_series(self.tickers, self.start_date, self.end_date).fetch_returns()
+        trade_log = []
+        for date in prices.index:
+            # Generate positions using the strategy (using data to the current date)
+            for strat, strat_params in self.strategy.capital_allocation.items():
+                strat_instance, capital_fraction = strat_params
+                strat_instance.end = date
+            current_weights = self.get_security_weights()
+            target_weights = self.strategy.aggregate_allocations()
+            trades, rebalanced_weights = self.get_rebalanced_weights(current_weights, target_weights)
+            self.weights.update(rebalanced_weights)
+            print('Done')
 
 
 
-def main():
-    tickers = ["AAPL", "MSFT", "GOOGL", "XOM", "JNJ"]
-    start_date = "2020-01-01"
-    end_date = "2024-12-31"
+        #     # Update open positions
+        #     for ticker, weight in weights.items():
+        #         if weight != 0:
+        #             self.open_positions[ticker] = weight
+        #     # Apply transaction costs
+        #     cost_penalty = self.cost_model.apply_costs(pd.Series(weights))
+        #     # Update equity curve and cash balance
+        #     self.update_equity_curve(returns.loc[date], cost_penalty)
+        # return #equity_curve, net_returns
 
-    price_data = yf.download(tickers, start=start_date, end=end_date)["Close"]
 
-    # Define macro strategies over all tickers
-    s1 = MomentumStrategy("UNRATE", 5.0, tickers, start_date, end_date)
-    s2 = MomentumStrategy("CPIAUCSL", 250.0, tickers, start_date, end_date)
-    strategies = [s1, s2]
-    weights = [0.6, 0.4]
 
-    composite = CompositeStrategy(strategies, weights)
+def main(tickers, composite, benchmark_ticker, start_date, end_date):
     cost_model = TransactionCostModel()
-    engine = BacktestEngine(price_data, composite, cost_model)
+    engine = BacktestEngine(tickers, composite, cost_model, start_date, end_date)
     equity, returns = engine.run()
+    #
+    # # Benchmark = SPY
+    # benchmark_ticker = "SPY"
+    # spy = yf.download(benchmark_ticker, start=start_date, end=end_date)["Close"]
+    # benchmark_returns = spy.pct_change()[benchmark_ticker].reindex(returns.index).dropna()
+    #
+    # stats = PerformanceStats(equity, returns, benchmark_returns).compute()
+    # print(stats)
 
-    # Benchmark = SPY
-    benchmark_ticker = "SPY"
-    spy = yf.download(benchmark_ticker, start=start_date, end=end_date)["Close"]
-    benchmark_returns = spy.pct_change()[benchmark_ticker].reindex(returns.index).fillna(0)
 
-    from stats.performance import PerformanceStats
+if __name__ == '__main__':
+    tickers = ["AAPL", "MSFT", "GOOG", "TSLA"]
 
-    stats = PerformanceStats(equity, returns, benchmark_returns).compute()
-    print(stats)
+    mean_rev = InitialiseStrategy(
+        strategy_cls=MeanReversionStrategy,
+        allocator_cls=VolatilityScaledAllocator,
+        tickers=tickers,
+        start="2020-01-01",
+        end="2024-12-31",
+        strategy_kwargs={"lookback": 20, "bound": 2}
+    )
 
-if __name__ == "__main__":
-    main()
+    momentum = InitialiseStrategy(
+        strategy_cls=MomentumStrategy,
+        allocator_cls=VolatilityScaledAllocator,
+        tickers=tickers,
+        start="2020-01-01",
+        end="2024-12-31",
+        strategy_kwargs={"lookback": 20, "threshold": 0.02}
+    )
+
+    capital_allocation = {
+        "mean_reversion": (mean_rev, 0.5),
+        "momentum": (momentum, 0.5)
+    }
+
+    ensemble = StrategyEnsemble(capital_allocation)
+    main(tickers, ensemble, benchmark_ticker="SPY", start_date="2020-01-01", end_date="2024-12-31")
+    print('Ensemble Weights:', ensemble.aggregate_allocations())
