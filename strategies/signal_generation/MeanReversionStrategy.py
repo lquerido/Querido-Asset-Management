@@ -1,4 +1,5 @@
-from strategies.BaseStrategy import BaseStrategy
+from strategies.signal_generation.BaseStrategy import BaseStrategy
+from strategies.allocations.EqualWeightAllocator import EqualWeightAllocator
 from datasets.GetPriceSeries import GetPriceSeries
 
 class MeanReversionStrategy(BaseStrategy):
@@ -29,7 +30,8 @@ class MeanReversionStrategy(BaseStrategy):
 if __name__ == '__main__':
     tickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA']
     prices = GetPriceSeries(ticker=tickers, start="2020-01-01", end="2024-12-31").fetch()
-    strategy = MeanReversionStrategy(prices, lookback=20, bound=2.0)
-    current_signal = strategy.generate_positions()
-    print("Current Signal:", current_signal)
+    strategy = MeanReversionStrategy(prices, lookback=20, bound=0.5)
+    signals = strategy.generate_positions()
+    weights = EqualWeightAllocator().allocate(signals)
+    print("Current Signal:", signals)
 
