@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-from stats.performance import PerformanceStats
+from stats.PerformanceStats import PerformanceStats
 
 def render(subview):
     if subview == "Performance Analytics":

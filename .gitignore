@@ -1,2 +1,4 @@
 \.idea
 \data
+\views
+\__pycache__
