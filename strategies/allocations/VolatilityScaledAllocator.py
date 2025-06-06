@@ -1,7 +1,8 @@
 from strategies.allocations.BaseAllocator import BaseAllocator
+from datasets.GetSeries import GetSeries
 
 class VolatilityScaledAllocator(BaseAllocator):
-    def __init__(self, vol_data: dict):  # {ticker: volatility}
+    def __init__(self, vol_data):
         self.vol_data = vol_data
 
     def allocate(self, signals: dict) -> dict:

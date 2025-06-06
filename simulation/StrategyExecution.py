@@ -1,8 +1,4 @@
 import pandas as pd
-import numpy as np
-from pandas_datareader import data as web
-import datetime
-import yfinance as yf
 from datasets.GetSeries import GetSeries
 from strategies.signal_generation.MomentumStrategy import MomentumStrategy
 from strategies.signal_generation.MeanReversionStrategy import MeanReversionStrategy
@@ -12,6 +8,7 @@ from strategies.allocations.EqualWeightAllocator import EqualWeightAllocator
 from strategies.StrategyEnsemble import StrategyEnsemble
 from strategies.InitialiseStrategy import InitialiseStrategy
 from strategies.rebalancing.NaiveFullRebalancer import NaiveFullRebalancer
+from stats.PerformanceStats import PerformanceStats
 
 
 class TransactionCostModel:
@@ -222,29 +219,34 @@ def main(tickers, strat, benchmark_ticker, benchmark_strat, start_date, end_date
     bmk_engine = BacktestEngine([benchmark_ticker], benchmark_strat, cost_model, start_date, end_date, slippage=slippage, commission=commission)
     bmk_equity, bmk_returns = bmk_engine.run()
 
-    # stats = PerformanceStats(equity, returns, benchmark_returns).compute()
-    # print(stats)
+    stats = PerformanceStats(strat_equity, strat_returns, bmk_equity, bmk_returns).compute()
+    print(stats)
     print('Done')
 
 
 if __name__ == '__main__':
     tickers = ["AAPL", "MSFT", "GOOG", "TSLA"]
+    start = "2020-01-01"
+    end = "2024-12-31"
+    vol_data = GetSeries(ticker=tickers, start=start, end=end).fetch_volatility()   # Needed for volatility scaled allocator
 
     mean_rev = InitialiseStrategy(
         strategy_cls=MeanReversionStrategy,
         allocator_cls=VolatilityScaledAllocator,
         tickers=tickers,
-        start="2020-01-01",
-        end="2024-12-31",
-        strategy_kwargs={"lookback": 20, "bound": 2}
+        start=start,
+        end=end,
+        strategy_kwargs={"lookback": 20, "bound": 2},
+        allocator_kwargs={"vol_data": vol_data}
     )
     momentum = InitialiseStrategy(
         strategy_cls=MomentumStrategy,
         allocator_cls=VolatilityScaledAllocator,
         tickers=tickers,
-        start="2020-01-01",
-        end="2024-12-31",
-        strategy_kwargs={"lookback": 20, "threshold": 0.02}
+        start=start,
+        end=end,
+        strategy_kwargs={"lookback": 20, "threshold": 0.02},
+        allocator_kwargs={"vol_data": vol_data}
     )
     capital_allocation = {
         "mean_reversion": (mean_rev, 0.5),
@@ -256,17 +258,17 @@ if __name__ == '__main__':
     benchmark = InitialiseStrategy(
         strategy_cls=BuyAndHoldStrategy,
         allocator_cls=EqualWeightAllocator,
-        tickers=tickers,
-        start="2020-01-01",
-        end="2024-12-31"
+        tickers="SPY",
+        start=start,
+        end=end
     )
     main(
         tickers,
         ensemble,
         benchmark_ticker="SPY",
         benchmark_strat=benchmark,
-        start_date="2020-01-01",
-        end_date="2024-12-31",
+        start_date=start,
+        end_date=end,
         slippage=0.001,
         commission=0.0005
     )

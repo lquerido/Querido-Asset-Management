@@ -22,7 +22,7 @@ class InitialiseStrategy:
     def run(self):
         strategy = self.strategy_cls(data=self.data, **self.strategy_kwargs)
         signals = strategy.generate_positions()
-        allocator = self.allocator_cls(vol_data=self.vol, **self.allocator_kwargs)
+        allocator = self.allocator_cls(**self.allocator_kwargs)
         weights = allocator.allocate(signals)
         return signals, weights
 

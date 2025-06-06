@@ -1,9 +1,10 @@
 import numpy as np
 
 class PerformanceStats:
-    def __init__(self, equity_curve, returns, benchmark_returns, rf_rate=0.015):
+    def __init__(self, equity_curve, returns, benchmark_equity, benchmark_returns, rf_rate=0.015):
         self.equity_curve = equity_curve
         self.returns = returns
+        self.benchmark_equity = benchmark_equity
         self.benchmark_returns = benchmark_returns
         self.rf_rate = rf_rate
 
