@@ -1,0 +1,39 @@
+# Description: Configuration file for the trading simulation
+
+vol_data: GetSeries(ticker=tickers, start=start, end=end).fetch_volatility()   # Needed for volatility scaled allocator
+
+mean_rev:
+    name: "MeanReversionStrategy"
+    parameters:
+      strategy_cls: MeanReversionStrategy
+      allocator_cls: VolatilityScaledAllocator
+      tickers: tickers
+      start: start
+      end: end
+      strategy_kwargs: {"lookback": 20, "bound": 2},
+      allocator_kwargs: {"vol_data": vol_data}
+
+momentum:
+    name: "MomentumStrategy"
+    parameters:
+      strategy_cls: MomentumStrategy
+      allocator_cls: VolatilityScaledAllocator
+      tickers: tickers
+      start: start
+      end: end
+      strategy_kwargs: {"lookback": 20, "threshold": 0.02},
+      allocator_kwargs: {"vol_data": vol_data}
+
+capital_allocation: {
+        "mean_reversion": (mean_rev, 0.5),
+        "momentum": (momentum, 0.5)
+    }
+
+ensemble: StrategyEnsemble(capital_allocation)
+
+benchmark: InitialiseStrategy(
+    strategy_cls=BuyAndHoldStrategy,
+    allocator_cls=EqualWeightAllocator,
+    tickers=benchmark_ticker,
+    start=start,
+    end=end

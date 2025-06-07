@@ -5,6 +5,17 @@ import pandas as pd
 import numpy as np
 import importlib
 from view_config import VIEW_STRUCTURE, VIEW_MODULES
+from datasets.GetSeries import GetSeries
+from strategies.signal_generation.MomentumStrategy import MomentumStrategy
+from strategies.signal_generation.MeanReversionStrategy import MeanReversionStrategy
+from strategies.signal_generation.BuyAndHoldStrategy import BuyAndHoldStrategy
+from strategies.allocations.VolatilityScaledAllocator import VolatilityScaledAllocator
+from strategies.allocations.EqualWeightAllocator import EqualWeightAllocator
+from strategies.StrategyEnsemble import StrategyEnsemble
+from strategies.InitialiseStrategy import InitialiseStrategy
+from strategies.rebalancing.NaiveFullRebalancer import NaiveFullRebalancer
+from stats.PerformanceStats import PerformanceStats
+from simulation.StrategyExecution import main
 
 # --- DUMMY DATA SETUP ---
 def load_dummy_data():
@@ -48,8 +59,50 @@ def render_sidebar(view):
 def render_view(view):
     if view == "Performance Summary":
         st.header("Performance Summary")
-        st.write("Key metrics snapshot")
-        st.line_chart(data.set_index("Date"))
+        if st.button("Run Backtest"):
+            tickers = ["AAPL", "MSFT", "GOOG", "TSLA"]
+            start = "2020-01-01"
+            end = "2024-12-31"
+            vol_data = GetSeries(ticker=tickers, start=start, end=end).fetch_volatility()
+
+            mean_rev = InitialiseStrategy(
+                strategy_cls=MeanReversionStrategy,
+                allocator_cls=VolatilityScaledAllocator,
+                tickers=tickers,
+                start=start,
+                end=end,
+                strategy_kwargs={"lookback": 20, "bound": 2},
+                allocator_kwargs={"vol_data": vol_data}
+            )
+            ensemble = StrategyEnsemble({"mean_reversion": (mean_rev, 1.0)})
+
+            benchmark = InitialiseStrategy(
+                strategy_cls=BuyAndHoldStrategy,
+                allocator_cls=EqualWeightAllocator,
+                tickers="SPY",
+                start=start,
+                end=end
+            )
+
+            equity, returns = main(
+                tickers,
+                ensemble,
+                benchmark_ticker="SPY",
+                benchmark_strat=benchmark,
+                start_date=start,
+                end_date=end,
+                slippage=0.001,
+                commission=0.0005
+            )
+
+            st.session_state["backtest_results"] = {
+                "equity": equity,
+                "returns": returns,
+            }
+
+            # Show results if available
+        if "backtest_results" in st.session_state:
+            st.line_chart(st.session_state["backtest_results"]["equity"])
 
     elif view == "Detailed Investment Performance Analysis":
         st.header("Detailed Investment Performance Analysis")
