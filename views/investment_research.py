@@ -1,8 +1,9 @@
 import streamlit as st
 import os
 
-RESEARCH_DIR = "views/subview_utils/investment_research"  # Directory where markdown files live
-
+RESEARCH_DIR = "views/subview_utils/investment_research"   # Directory where markdown files live
+PDF_DIR = "views/subview_utils/investment_research/pdfs"         # Matching PDFs
+LATEX_DIR = "views/subview_utils/investment_research/latex"      # Matching LaTeX files
 
 def render(subview):
     st.title("Investment Research")
@@ -25,10 +26,26 @@ def render(subview):
             content = f.read()
             st.markdown(content)
 
-        # Optional download as PDF (stub for now)
-        st.download_button(
-            label="Download PDF",
-            data=b"PDF generation placeholder.",
-            file_name=selected_paper.replace(".md", ".pdf"),
-            mime="application/pdf"
-        )
+        base_filename = selected_paper.replace(".md", "")
+
+        # PDF Download
+        pdf_path = os.path.join(PDF_DIR, f"{base_filename}.pdf")
+        if os.path.exists(pdf_path):
+            with open(pdf_path, "rb") as f:
+                st.download_button(
+                    label="Download PDF",
+                    data=f,
+                    file_name=f"{base_filename}.pdf",
+                    mime="application/pdf"
+                )
+
+        # LaTeX Source Download
+        tex_path = os.path.join(LATEX_DIR, f"{base_filename}.tex")
+        if os.path.exists(tex_path):
+            with open(tex_path, "rb") as f:
+                st.download_button(
+                    label="Download LaTeX",
+                    data=f,
+                    file_name=f"{base_filename}.tex",
+                    mime="application/x-tex"
+                )
