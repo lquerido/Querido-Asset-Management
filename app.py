@@ -130,23 +130,39 @@ def render_view(view):
 main_views = list(VIEW_STRUCTURE.keys())
 cols = st.columns(len(main_views))
 
-# Get latest backtest results
-config = load_config()
-stats = run_simulation(config)
-st.session_state["backtest_results"] = stats
+@st.cache_data
+def get_backtest_results():
+    config = load_config()
+    return run_simulation(config)
 
-if "selected_view" not in st.session_state:
-    st.session_state.selected_view = main_views[0]  # default
+if "backtest_results" not in st.session_state:
+    st.session_state["backtest_results"] = get_backtest_results()
 
-for i, view_name in enumerate(main_views):
-    if cols[i].button(view_name):
-        st.session_state.selected_view = view_name
+if st.sidebar.button("Home"):
+    selected_view = "Home"
+    selected_subview = None
 
-selected_view = st.session_state.selected_view
+with st.sidebar:
+    st.title("Querido Capital")
 
-# --- Subview Navigation ---
-subviews = VIEW_STRUCTURE.get(selected_view, [])
-selected_subview = st.sidebar.radio("Select View", subviews) if subviews else None
+    # Flatten all subviews with their view names
+    subview_options = [
+        (view_name, subview)
+        for view_name, subviews in VIEW_STRUCTURE.items()
+        for subview in subviews
+    ]
+
+    # Display subviews grouped by headings, but select only one
+    st.markdown("### Select an Option")
+
+    # Create readable labels like "Performance Summary - PM Update"
+    labels = [f"{view} - {sub}" for view, sub in subview_options]
+    selection = st.radio("Navigation", labels)
+
+    # Parse selection into view and subview
+    selected_view, selected_subview = next(
+        (view, sub) for view, sub in subview_options if f"{view} - {sub}" == selection
+    )
 
 # --- Load View Dynamically ---
 module_path = VIEW_MODULES.get(selected_view)
