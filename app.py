@@ -1,5 +1,4 @@
 # Base Dashboard Template for Querido Capital Management
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -16,15 +15,55 @@ from strategies.InitialiseStrategy import InitialiseStrategy
 from strategies.rebalancing.NaiveFullRebalancer import NaiveFullRebalancer
 from stats.PerformanceStats import PerformanceStats
 from simulation.StrategyExecution import main
+import yaml
 
-# --- DUMMY DATA SETUP ---
-def load_dummy_data():
-    dates = pd.date_range(start="2022-01-01", periods=100, freq="D")
-    prices = np.cumsum(np.random.randn(100)) + 100
-    dummy_df = pd.DataFrame({"Date": dates, "Price": prices})
-    return dummy_df
+def load_config(path="config.yaml"):
+    with open(path, "r") as f:
+        return yaml.safe_load(f)
 
-data = load_dummy_data()
+def run_simulation(config):
+    tickers = config["tickers"]
+    start = config["start"]
+    end = config["end"]
+    vol_data = GetSeries(ticker=tickers, start=start, end=end).fetch_volatility()
+
+    strategies = {}
+    for name, strat_cfg in config["strategies"].items():
+        strategy_cls = globals()[strat_cfg["class"]]
+        allocator_cls = globals()[strat_cfg["allocator"]]
+        strat = InitialiseStrategy(
+            strategy_cls=strategy_cls,
+            allocator_cls=allocator_cls,
+            tickers=tickers,
+            start=start,
+            end=end,
+            strategy_kwargs=strat_cfg.get("strategy_kwargs", {}),
+            allocator_kwargs={"vol_data": vol_data}
+        )
+        strategies[name] = (strat, strat_cfg["weight"])
+
+    ensemble = StrategyEnsemble(strategies)
+
+    benchmark_cfg = config["benchmark"]
+    benchmark = InitialiseStrategy(
+        strategy_cls=globals()[benchmark_cfg["class"]],
+        allocator_cls=globals()[benchmark_cfg["allocator"]],
+        tickers=benchmark_cfg["ticker"],
+        start=start,
+        end=end
+    )
+
+    stats = main(
+        tickers,
+        ensemble,
+        benchmark_ticker=benchmark_cfg["ticker"],
+        benchmark_strat=benchmark,
+        start_date=start,
+        end_date=end,
+        slippage=config["slippage"],
+        commission=config["commission"]
+    )
+    return stats
 
 # --- SIDEBAR CONTROLS ---
 def render_sidebar(view):
@@ -55,54 +94,22 @@ def render_sidebar(view):
             "Dashboard Logic"
         ])
 
+
 # --- MAIN VIEW RENDERING ---
 def render_view(view):
     if view == "Performance Summary":
         st.header("Performance Summary")
-        if st.button("Run Backtest"):
-            tickers = ["AAPL", "MSFT", "GOOG", "TSLA"]
-            start = "2020-01-01"
-            end = "2024-12-31"
-            vol_data = GetSeries(ticker=tickers, start=start, end=end).fetch_volatility()
-
-            mean_rev = InitialiseStrategy(
-                strategy_cls=MeanReversionStrategy,
-                allocator_cls=VolatilityScaledAllocator,
-                tickers=tickers,
-                start=start,
-                end=end,
-                strategy_kwargs={"lookback": 20, "bound": 2},
-                allocator_kwargs={"vol_data": vol_data}
-            )
-            ensemble = StrategyEnsemble({"mean_reversion": (mean_rev, 1.0)})
-
-            benchmark = InitialiseStrategy(
-                strategy_cls=BuyAndHoldStrategy,
-                allocator_cls=EqualWeightAllocator,
-                tickers="SPY",
-                start=start,
-                end=end
-            )
-
-            equity, returns = main(
-                tickers,
-                ensemble,
-                benchmark_ticker="SPY",
-                benchmark_strat=benchmark,
-                start_date=start,
-                end_date=end,
-                slippage=0.001,
-                commission=0.0005
-            )
-
-            st.session_state["backtest_results"] = {
-                "equity": equity,
-                "returns": returns,
-            }
-
-            # Show results if available
-        if "backtest_results" in st.session_state:
-            st.line_chart(st.session_state["backtest_results"]["equity"])
+        # if st.button("Run Backtest"):
+        #     config = load_config()
+        #     equity, returns = run_simulation(config)
+        #
+        #     st.session_state["backtest_results"] = {
+        #         "equity": equity,
+        #         "returns": returns,
+        #     }
+        #
+        # if "backtest_results" in st.session_state:
+        #     st.line_chart(st.session_state["backtest_results"]["equity"])
 
     elif view == "Detailed Investment Performance Analysis":
         st.header("Detailed Investment Performance Analysis")
@@ -122,6 +129,11 @@ def render_view(view):
 # --- Navigation ---
 main_views = list(VIEW_STRUCTURE.keys())
 cols = st.columns(len(main_views))
+
+# Get latest backtest results
+config = load_config()
+stats = run_simulation(config)
+st.session_state["backtest_results"] = stats
 
 if "selected_view" not in st.session_state:
     st.session_state.selected_view = main_views[0]  # default

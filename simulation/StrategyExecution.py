@@ -220,8 +220,15 @@ def main(tickers, strat, benchmark_ticker, benchmark_strat, start_date, end_date
     bmk_equity, bmk_returns = bmk_engine.run()
 
     stats = PerformanceStats(strat_equity, strat_returns, bmk_equity, bmk_returns).compute()
-    print(stats)
-    print('Done')
+    return {
+        "strategy_equity": strat_equity,
+        "strategy_returns": strat_returns,
+        "benchmark_equity": bmk_equity,
+        "benchmark_returns": bmk_returns,
+        "performance_stats": stats,
+        "execution_log": strat_engine.execution_log,
+        "trade_log": strat_engine.trade_log
+    }
 
 
 if __name__ == '__main__':

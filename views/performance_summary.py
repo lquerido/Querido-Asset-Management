@@ -1,32 +1,47 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-
-from stats.PerformanceStats import PerformanceStats
+import plotly.express as px
 
 def render(subview):
     if subview == "Performance Analytics":
         st.header("Composite Portfolio Performance")
 
-        # Dummy returns for illustration
-        composite_returns = pd.Series(np.random.randn(252) / 100)
-        strategy_returns = {
-            "Mean Reversion": pd.Series(np.random.randn(252) / 100),
-            "Momentum": pd.Series(np.random.randn(252) / 100),
-            "Macro Filter": pd.Series(np.random.randn(252) / 100)
-        }
-        bencmark_returns = pd.Series(np.random.randn(252) / 100)
+        if "backtest_results" in st.session_state:
+            results = st.session_state["backtest_results"]
 
-        stats = PerformanceStats(composite_returns, strategy_returns, bencmark_returns)
+            # Key Metrics
+            st.subheader("Key Metrics")
+            stats_df = pd.DataFrame(results["performance_stats"], index=["Value"]).T
+            st.table(stats_df)
 
-        # Display Summary Table
-        st.subheader("Key Metrics")
-        st.table(stats.compute())
+            # Equity Curves
+            st.subheader("Equity Curves")
+            equity_df = pd.DataFrame({
+                "Strategy": results["strategy_equity"],
+                "Benchmark": results["benchmark_equity"]
+            })
+            st.line_chart(equity_df)
 
-        # # Attribution Chart
-        # attribution = stats.attribution()
-        # if attribution is not None:
-        #     st.subheader("Attribution by Strategy")
-        #     st.bar_chart(attribution)
-        # else:
-        #     st.info("Attribution data not available.")
+            # Returns
+            st.subheader("Returns")
+            returns_df = pd.DataFrame({
+                "Strategy Returns": results["strategy_returns"],
+                "Benchmark Returns": results["benchmark_returns"]
+            })
+            st.line_chart(returns_df)
+
+            # Returns Histogram
+            st.subheader("Return Distribution (Strategy)")
+            fig = px.histogram(results["strategy_returns"], nbins=50, title="Strategy Return Distribution")
+            st.plotly_chart(fig, use_container_width=True)
+
+            # Trade Log (Optional)
+            st.subheader("Trade Log")
+            st.dataframe(pd.DataFrame(results["trade_log"]))
+
+            # Execution Log (Optional)
+            with st.expander("Execution Log"):
+                st.dataframe(pd.DataFrame(results["execution_log"]))
+
+        else:
+            st.info("Run a backtest first.")
