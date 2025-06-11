@@ -53,3 +53,71 @@ def render(subview):
         st.dataframe(factors)
         st.metric("Turnover", "35%")
         st.metric("Win Rate", "62%")
+
+
+def render_attribution():
+    st.set_page_config(layout="wide")
+    st.subheader("Performance Attribution")
+
+    # Metric cards
+    st.markdown("""
+        <style>
+            .metric-card {
+                background-color: #f8f9fa;
+                border-radius: 1rem;
+                padding: 1.5rem;
+                text-align: center;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+                height: 100%;
+            }
+            .metric-number {
+                font-size: 2rem;
+                font-weight: bold;
+                margin-bottom: 0.25rem;
+            }
+            .metric-label {
+                font-size: 0.9rem;
+                color: #6c757d;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    metrics = [
+        {"label": "Total Attribution", "value": "+6.7%"},
+        {"label": "Top Strategy", "value": "Momentum"},
+        {"label": "Worst Strategy", "value": "Mean Reversion"},
+    ]
+
+    cols = st.columns(3)
+    for i, metric in enumerate(metrics):
+        with cols[i]:
+            st.markdown(f"""
+                <div class="metric-card">
+                    <div class="metric-number">{metric['value']}</div>
+                    <div class="metric-label">{metric['label']}</div>
+                </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    st.markdown("#### Strategy Contributions")
+    strategy_contrib = pd.DataFrame({
+        "Strategy": ["Momentum", "Mean Reversion", "Buy & Hold"],
+        "Contribution (%)": [4.2, -1.1, 3.6]
+    })
+    st.dataframe(strategy_contrib, use_container_width=True)
+
+    chart_cols = st.columns(2)
+    with chart_cols[0]:
+        st.markdown("#### Sector Attribution")
+        st.bar_chart(pd.Series(
+            np.random.randn(5), index=[f"Sector {i+1}" for i in range(5)]
+        ))
+
+    with chart_cols[1]:
+        st.markdown("#### Rolling Strategy Contribution")
+        df = pd.DataFrame(
+            np.cumsum(np.random.randn(100, 3), axis=0),
+            columns=["Momentum", "Mean Reversion", "Buy & Hold"]
+        )
+        st.line_chart(df)

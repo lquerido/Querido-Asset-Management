@@ -219,15 +219,21 @@ def main(tickers, strat, benchmark_ticker, benchmark_strat, start_date, end_date
     bmk_engine = BacktestEngine([benchmark_ticker], benchmark_strat, cost_model, start_date, end_date, slippage=slippage, commission=commission)
     bmk_equity, bmk_returns = bmk_engine.run()
 
-    stats = PerformanceStats(strat_equity, strat_returns, bmk_equity, bmk_returns).compute()
+    strat_performance = PerformanceStats(strat_equity, bmk_returns, strat_returns, bmk_equity, strat_engine.trade_log, strat_engine.holdings)
+    performance_stats = strat_performance._calculate_performance()
+    alpha, beta = strat_performance._calc_alpha_beta(strat_returns, bmk_returns)
+    rolling_stats = strat_performance._calculate_rolling_stats()
+    exposure_stats = strat_performance._calculate_exposures()
+    attribution_stats = strat_performance._calculate_attribution()
+    summarised_trades = strat_performance._summarize_trades()
     return {
-        "strategy_equity": strat_equity,
-        "strategy_returns": strat_returns,
-        "benchmark_equity": bmk_equity,
-        "benchmark_returns": bmk_returns,
-        "performance_stats": stats,
-        "execution_log": strat_engine.execution_log,
-        "trade_log": strat_engine.trade_log
+        "performance_stats": performance_stats,
+        "alpha": alpha,
+        "beta": beta,
+        "rolling_stats": rolling_stats,
+        "exposure_stats": exposure_stats,
+        "attribution_stats": attribution_stats,
+        "summarised_trades": summarised_trades
     }
 
 

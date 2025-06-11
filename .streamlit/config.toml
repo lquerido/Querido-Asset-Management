@@ -1,6 +1,7 @@
 [theme]
-primaryColor = "#004E89"       # Deep blue for highlights
-backgroundColor = "#F8F9FA"    # Soft light gray
-secondaryBackgroundColor = "#FFFFFF"  # Clean white for cards/panels
-textColor = "#212529"          # Near-black for legibility
-font = "sans serif"
+base="light"
+primaryColor="#1f77b4"         # A clean finance blue
+backgroundColor="#ffffff"      # White background
+secondaryBackgroundColor="#f5f7fa"  # Soft grey panels
+textColor="#1a1a1a"            # Almost-black text
+font="sans serif"              # Clean default font
