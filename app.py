@@ -16,6 +16,7 @@ from strategies.rebalancing.NaiveFullRebalancer import NaiveFullRebalancer
 from stats.PerformanceStats import PerformanceStats
 from simulation.StrategyExecution import main
 import yaml
+from views.performance_summary import render_summary
 from views.detailed_analysis import render_attribution
 
 #
@@ -181,6 +182,30 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 
+st.set_page_config(layout="wide")  # ✅ makes use of full browser width
+
+# Optional: extra styling tweaks
+st.markdown("""
+    <style>
+        /* Hide Streamlit default header, menu, footer */
+        #MainMenu, header, footer {
+            visibility: hidden;
+            height: 0px;
+        }
+        /* Force main content up */
+        .appview-container {
+            padding-top: 0 !important;
+            margin-top: -5rem !important;
+        }
+        /* Reduce top padding inside the sidebar */
+        section[data-testid="stSidebar"] > div:first-child {
+            padding-top: 2rem !important;
+            margin-top: 2rem !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+
 # --- Sidebar Navigation ---
 VIEW_STRUCTURE = {
     "Simplified Portfolio Analysis": ["Summary", "Risk", "Exposure"],
@@ -241,20 +266,7 @@ def render(subview):
     st.title(subview)
 
     if subview == "Summary":
-        st.subheader("Key Portfolio Metrics")
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Annualized Return", "12.4%")
-        col2.metric("Volatility", "8.9%")
-        col3.metric("Sharpe Ratio", "1.39")
-        col4.metric("Sortino Ratio", "2.01")
-
-        col5, col6, col7 = st.columns(3)
-        col5.metric("Max Drawdown", "-5.3%")
-        col6.metric("Calmar Ratio", "2.34")
-        col7.metric("Information Ratio", "0.87")
-
-        st.markdown("### Equity Curve")
-        st.line_chart(dummy_series())
+        render_summary()
 
     elif subview == "Risk":
         st.subheader("Rolling Risk Metrics")
