@@ -16,7 +16,7 @@ from strategies.rebalancing.NaiveFullRebalancer import NaiveFullRebalancer
 from stats.PerformanceStats import PerformanceStats
 from simulation.StrategyExecution import main
 import yaml
-from views.performance_summary import render_summary
+from views.performance_summary import render_summary, render_risk_and_performance
 from views.detailed_analysis import render_attribution
 
 #
@@ -263,29 +263,13 @@ def dummy_returns(n=100):
 
 # --- Render View Logic ---
 def render(subview):
-    st.title(subview)
+    # st.title(subview)
 
     if subview == "Summary":
         render_summary()
 
     elif subview == "Risk":
-        st.subheader("Rolling Risk Metrics")
-        # Simulated rolling risk metrics
-        rolling_metrics = {
-            "Beta": pd.Series(np.random.uniform(0.7, 1.2, 100)),
-            "Tracking Error": pd.Series(np.random.uniform(0.01, 0.05, 100)),
-            "Excess Return": pd.Series(np.random.randn(100) / 100),
-            "Information Ratio": pd.Series(np.random.uniform(0.2, 1.0, 100)),
-            "Drawdown": pd.Series(np.random.uniform(-0.15, 0, 100)),
-        }
-
-        selected_metric = st.selectbox("Select Rolling Metric", list(rolling_metrics.keys()))
-        st.line_chart(rolling_metrics[selected_metric])
-
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Beta", "0.87")
-        col2.metric("Alpha", "1.8%")
-        col3.metric("Tracking Error", "2.1%")
+        render_risk_and_performance()
 
     elif subview == "Exposure":
         st.subheader("Exposures & Positioning")
