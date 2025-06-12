@@ -52,6 +52,7 @@ import numpy as np
 import datetime
 
 
+
 def dummy_series(n=100, scale=1):
     dates = pd.date_range(end=pd.Timestamp.today(), periods=n)
     data = np.cumsum(np.random.randn(n) * scale)
@@ -181,3 +182,66 @@ def render_risk_and_performance():
             px.bar(x=factors, y=contributions, title="", labels={"x": "Factor", "y": "Contribution"}),
             use_container_width=True
         )
+
+def render_exposures_and_positioning():
+    # --- Centered Title ---
+    st.markdown("<h2 style='text-align: center;'>Exposures & Positioning</h2>", unsafe_allow_html=True)
+
+    # --- Date Filters ---
+    inception_date = datetime.date(2020, 1, 1)
+    today = datetime.date.today()
+
+    col1, col2 = st.columns(2)
+    with col1:
+        start_date = st.date_input("Start Date", value=inception_date, key="exposure_start")
+    with col2:
+        end_date = st.date_input("End Date", value=today, key="exposure_end")
+
+    # --- Metrics Grid ---
+    metrics = [
+        ("Net Exposure", "78%"),
+        ("Gross Exposure", "130%"),
+        ("Leverage (Actual)", "1.25x"),
+        ("Leverage (Target)", "1.50x"),
+        ("Position Sizing", "Balanced"),
+        ("Geo Exposure (Abs.)", "45%"),
+        ("Geo Exposure (Active)", "+8%"),
+        ("Sector Exposure (Abs.)", "60%"),
+        ("Sector Exposure (Active)", "-3%"),
+        ("Asset Class Exposure", "Mixed"),
+        ("Currency Exposure", "USD 72%"),
+    ]
+
+    # Group into rows of 4 (for better balance)
+    for i in range(0, len(metrics), 4):
+        if i > 0:
+            st.markdown("<div style='margin-top: 1.25rem;'></div>", unsafe_allow_html=True)
+
+        cols = st.columns(4)
+        for col, (label, value) in zip(cols, metrics[i:i+4]):
+            col.markdown(f"""
+                <div style="
+                    background-color: #f0f2f6;
+                    border-radius: 12px;
+                    padding: 1rem;
+                    text-align: center;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+                ">
+                    <div style="font-size: 1.8rem; font-weight: 600; color: #333;">{value}</div>
+                    <div style="font-size: 0.9rem; color: #666;">{label}</div>
+                </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    # --- Placeholder for charts ---
+    st.markdown("### Exposure Breakdown")
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("**Geographic Exposure**")
+        st.bar_chart(pd.Series(np.random.rand(5), index=[f"Region {i+1}" for i in range(5)]))
+
+    with col2:
+        st.markdown("**Sector Exposure**")
+        st.bar_chart(pd.Series(np.random.rand(6), index=[f"Sector {i+1}" for i in range(6)]))

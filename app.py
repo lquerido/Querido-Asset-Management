@@ -16,7 +16,7 @@ from strategies.rebalancing.NaiveFullRebalancer import NaiveFullRebalancer
 from stats.PerformanceStats import PerformanceStats
 from simulation.StrategyExecution import main
 import yaml
-from views.performance_summary import render_summary, render_risk_and_performance
+from views.performance_summary import render_summary, render_risk_and_performance, render_exposures_and_positioning
 from views.detailed_analysis import render_attribution
 
 #
@@ -272,15 +272,7 @@ def render(subview):
         render_risk_and_performance()
 
     elif subview == "Exposure":
-        st.subheader("Exposures & Positioning")
-        exposure_type = st.selectbox("Select Exposure Type", ["Geographic", "Sector", "Currency", "Asset Class"])
-        st.bar_chart(pd.Series(np.random.rand(5), index=[f"{exposure_type} {i+1}" for i in range(5)]))
-
-        st.subheader("Net / Gross Exposure and Leverage")
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Net Exposure", "78%")
-        col2.metric("Gross Exposure", "130%")
-        col3.metric("Leverage", "1.25x")
+        render_exposures_and_positioning()
 
     elif subview == "Attribution":
         render_attribution()
