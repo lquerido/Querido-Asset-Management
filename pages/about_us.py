@@ -9,9 +9,9 @@ def render(subview):
     st.title("About Querido Capital Management")
 
     if subview == "About":
-        render_markdown_from_file("views/subview_utils/about_us/about.md")
+        render_markdown_from_file("pages/subview_utils/about_us/about.md")
     elif subview == "Our Strategies":
-        render_markdown_from_file("views/subview_utils/about_us/our_strategies.md")
+        render_markdown_from_file("pages/subview_utils/about_us/our_strategies.md")
     elif subview == "Dashboard Logic":
-        render_markdown_from_file("views/subview_utils/about_us/dashboard_logic.md")
+        render_markdown_from_file("pages/subview_utils/about_us/dashboard_logic.md")
 

@@ -1,7 +1,6 @@
 [theme]
-base = "dark"
-primaryColor = "#1f6fba"                # Clean blue (buttons, highlights)
-backgroundColor = "#0d1117"             # Deep navy background
-secondaryBackgroundColor = "#1a2332"    # Blue-grey cards/panels
-textColor = "#e6e6e6"                   # Light grey text
-font = "sans serif"
+base = "light"
+primaryColor = "#207f73"             # Teal (from earlier)
+backgroundColor = "#f5f2f1"          # Soft off-white background from your image
+secondaryBackgroundColor = "#e6ebe9" # Slightly darker for cards/panels
+textColor = "#1a1a1a"                # Dark readable text

@@ -15,8 +15,8 @@ VIEW_STRUCTURE = {
 }
 
 VIEW_MODULES = {
-    "Performance Summary": "views.performance_summary",
-    "Detailed Investment Performance Analysis": "views.detailed_analysis",
-    "Investment Research": "views.investment_research",
-    "About Us": "views.about_us"
+    "Performance Summary": "pages.performance_summary",
+    "Detailed Investment Performance Analysis": "pages.detailed_analysis",
+    "Investment Research": "pages.investment_research",
+    "About Us": "pages.about_us"
 }
