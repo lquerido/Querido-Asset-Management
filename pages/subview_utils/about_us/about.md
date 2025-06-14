@@ -1,11 +1,3 @@
-# About Querido Capital Management
-
-**Querido Capital Management** is a data-driven investment research and portfolio management firm.
-
-Our focus is on building systematic strategies informed by macroeconomic data, technical signals, and advanced statistical techniques.
-
----
-
 ## What We Do
 
 - **Develop** quantitative strategies across asset classes
@@ -23,4 +15,4 @@ We believe that:
 
 ---
 
-For more, [visit our GitHub](https://github.com/your-repo) or [connect on LinkedIn](https://linkedin.com/in/your-profile).
+For more, [visit our GitHub](https://github.com/lquerido/Querido-Asset-Management) or [connect on LinkedIn](https://linkedin.com/in/liam-querido-aiaa-1235281b7/).

@@ -25,3 +25,9 @@ def render_metric_grid(metrics: list[tuple[str, str]], columns: int = 3):
             """, unsafe_allow_html=True)
 
     st.markdown("---")
+
+
+def render_markdown_from_file(filepath):
+    with open(filepath, "r") as f:
+        content = f.read()
+    st.markdown(content, unsafe_allow_html=True)  # Use unsafe_html if you're adding custom HTML
