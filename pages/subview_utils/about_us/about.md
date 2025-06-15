@@ -14,5 +14,3 @@ We believe that:
 - Research is a continuous process
 
 ---
-
-For more, [visit our GitHub](https://github.com/lquerido/Querido-Asset-Management) or [connect on LinkedIn](https://linkedin.com/in/liam-querido-aiaa-1235281b7/).
