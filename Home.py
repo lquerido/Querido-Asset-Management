@@ -1,26 +1,13 @@
 import streamlit as st
 from utils.helper_functions import render_markdown_from_file
-from utils.helper_functions import render_global_sidebar
+from utils.helper_functions import render_global_toolbar
 
 st.set_page_config(layout="wide")
 
 # Title centered above
 # st.markdown("<h1 style='text-align: center;'>Querido Capital Management</h1>", unsafe_allow_html=True)
 
-from utils.helper_functions import render_global_sidebar
-fund_list = [
-    "Querido Global Macro Fund",
-    "Querido Global Macro Fund II",
-    "Querido Global Macro Fund III",
-]
-strategy_list = [
-    "Global Macro",
-    "Quantitative Equity",
-    "Systematic Macro",
-    "Statistical Arbitrage",
-]
-render_global_sidebar(fund_list, strategy_list)
-
+import streamlit as st
 
 # --- Two Columns Layout ---
 col1, col2 = st.columns([1.5, 1])

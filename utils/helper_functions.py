@@ -3,13 +3,43 @@ import streamlit as st
 import plotly.express as px
 import datetime
 
-def render_global_sidebar(fund_list, strategy_list):
-    with st.sidebar:
+import datetime
+import streamlit as st
+
+def render_global_toolbar(fund_list, strategy_list):
+    # Sticky toolbar CSS
+    st.markdown("""
+        <style>
+            .toolbar {
+                position: -webkit-sticky;
+                position: sticky;
+                top: 0;
+                background-color: #f5f2f1;
+                padding: 1rem;
+                z-index: 999;
+                border-bottom: 1px solid #ddd;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # Toolbar container
+    st.markdown('<div class="toolbar">', unsafe_allow_html=True)
+
+    # First row: Fund & Strategy
+    col1, col2 = st.columns(2)
+    with col1:
         st.selectbox("Fund", fund_list, key="fund")
+    with col2:
         st.selectbox("Strategy", strategy_list, key="strategy")
-        st.date_input("PIT Date", value=datetime.date(2024, 12, 31), key="pit_date")
+
+    # Second row: Start & End Date
+    col3, col4 = st.columns(2)
+    with col3:
         st.date_input("Start Date", value=datetime.date(2020, 1, 1), key="start_date")
+    with col4:
         st.date_input("End Date", value=datetime.date.today(), key="end_date")
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 def render_metric_grid(metrics: list[tuple[str, str]], columns: int = 3):
