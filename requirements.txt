@@ -4,3 +4,4 @@ pandas_datareader
 yaml
 matplotlib
 scipy
+plotly
