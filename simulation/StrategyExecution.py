@@ -179,7 +179,14 @@ class BacktestEngine:
         equity_curve = account_df["Total Value"]
         returns = account_df["Total Value"].pct_change().dropna()
 
-        return equity_curve, returns
+        # ⬇️ Convert trade_log to DataFrame
+        trades_df = pd.DataFrame(self.trade_log)
+
+        # ⬇️ Reconstruct positions_df
+        # You’ll want to store and return exposures during _log_account
+        positions_df = pd.DataFrame(self.account_history)  # optionally enrich with sector/region etc. elsewhere
+
+        return returns, equity_curve, trades_df, positions_df
 
     def _log_trade(self, date, ticker, side, quantity, signal_price, exec_price, strategy):
         self.trade_log.append({
@@ -213,28 +220,27 @@ def main(tickers, strat, benchmark_ticker, benchmark_strat, start_date, end_date
     # Run backtest
     cost_model = TransactionCostModel()
     strat_engine = BacktestEngine(tickers, strat, cost_model, start_date, end_date, slippage=slippage, commission=commission)
-    strat_equity, strat_returns = strat_engine.run()
+    # strat_equity, strat_returns = strat_engine.run()
 
     # Benchmark = SPY
     bmk_engine = BacktestEngine([benchmark_ticker], benchmark_strat, cost_model, start_date, end_date, slippage=slippage, commission=commission)
-    bmk_equity, bmk_returns = bmk_engine.run()
+    # bmk_equity, bmk_returns = bmk_engine.run()
 
-    strat_performance = PerformanceStats(strat_equity, bmk_returns, strat_returns, bmk_equity, strat_engine.trade_log, strat_engine.holdings)
-    performance_stats = strat_performance._calculate_performance()
-    alpha, beta = strat_performance._calc_alpha_beta(strat_returns, bmk_returns)
-    rolling_stats = strat_performance._calculate_rolling_stats()
-    exposure_stats = strat_performance._calculate_exposures()
-    attribution_stats = strat_performance._calculate_attribution()
-    summarised_trades = strat_performance._summarize_trades()
-    return {
-        "performance_stats": performance_stats,
-        "alpha": alpha,
-        "beta": beta,
-        "rolling_stats": rolling_stats,
-        "exposure_stats": exposure_stats,
-        "attribution_stats": attribution_stats,
-        "summarised_trades": summarised_trades
-    }
+    returns, equity_curve, trades_df, positions_df = strat_engine.run()
+    bmk_returns, bmk_equity, _, _ = bmk_engine.run()
+
+    # Reformat returns into a DataFrame
+    returns_df = pd.DataFrame({
+        "strategy": returns,
+        "benchmark": bmk_returns
+    }).dropna()
+
+    stats = PerformanceStats(
+        returns_df=returns_df,
+        trades=trades_df,
+        positions=positions_df
+    )
+    return stats
 
 
 if __name__ == '__main__':
