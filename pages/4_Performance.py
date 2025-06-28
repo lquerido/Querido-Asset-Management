@@ -29,18 +29,21 @@ end_date = st.session_state.get("end_date")
 level = st.radio("Select Level", ["Composite", "Strategy"], horizontal=True)
 
 # --- Summary Metrics ---
+from app_state import get_performance_stats
+stats = get_performance_stats()
+
 metrics = [
-    ("Total Return", "14.8%"),
-    ("Excess Return", "3.5%"),
-    ("Volatility", "11.2%"),
-    ("Sharpe Ratio", "1.21"),
-    ("Tracking Error", "2.7%"),
-    ("Information Ratio", "0.84"),
-    ("Beta", "0.91"),
-    ("Drawdown", "-6.4%"),
-    ("Up Capture", "104%"),
-    ("Down Capture", "93%"),
-    ("Turnover", "18%")
+    ("Total Return", f"{stats.total_return:.2%}"),
+    ("Excess Return", f"{stats.excess_return:.2%}"),
+    ("Volatility", f"{stats.volatility:.2%}"),
+    ("Sharpe Ratio", f"{stats.sharpe:.2f}"),
+    ("Tracking Error", f"{stats.tracking_error:.2%}"),
+    ("Information Ratio", f"{stats.info_ratio:.2f}"),
+    ("Beta", f"{stats.beta:.2f}"),
+    ("Drawdown", f"{stats.max_drawdown:.2%}"),
+    ("Up Capture", f"{stats.up_capture:.0%}"),
+    ("Down Capture", f"{stats.down_capture:.0%}"),
+    ("Turnover", f"{stats.turnover:.2%}"),
 ]
 render_metric_grid(metrics, columns=3)
 
@@ -48,9 +51,9 @@ st.markdown("---")
 
 # --- Cumulative Returns ---
 st.markdown("#### Cumulative Return (Indexed)")
-dates = pd.date_range(start=start_date, end=end_date, periods=100)
-portfolio = (1 + pd.Series(np.random.normal(0.001, 0.01, 100), index=dates)).cumprod()
-benchmark = (1 + pd.Series(np.random.normal(0.0008, 0.01, 100), index=dates)).cumprod()
+portfolio = (1 + stats.strategy_returns).cumprod()
+benchmark = (1 + stats.benchmark_returns).cumprod()
+dates = portfolio.index  # reuse actual dates
 render_green_line_chart("Cumulative Return (Indexed)", [portfolio, benchmark], ["Portfolio", "Benchmark"])
 
 st.markdown("---")
@@ -59,13 +62,16 @@ st.markdown("---")
 st.markdown("#### Excess Return")
 bar_freq = st.selectbox("Bar Chart Frequency", ["Monthly", "Quarterly", "Annual"], key="bar_freq")
 bar_periods = {"Monthly": 12, "Quarterly": 8, "Annual": 5}[bar_freq]
-bar_dates = pd.date_range(start=start_date, end=end_date, periods=bar_periods)
-bar_series = pd.Series(np.random.normal(0.01, 0.02, bar_periods), index=bar_dates)
+excess = stats.strategy_returns - stats.benchmark_returns
+# excess.index = pd.to_datetime(excess.index)
+# excess = excess.sort_index()
+bar_series = excess.resample({'Monthly': 'M', 'Quarterly': 'Q', 'Annual': 'A'}[bar_freq]).sum()
 render_green_bar_chart(f"{bar_freq} Excess Return", bar_series.values, bar_series.index)
 
 # --- Drawdown Chart ---
 dd_freq = st.selectbox("Drawdown Frequency", ["Monthly", "Quarterly", "Annual"], key="dd_freq")
-dd_series = pd.Series(np.random.normal(0.001, 0.01, 100), index=dates)  # Optionally vary by dd_freq
+cum_return = (1 + stats.strategy_returns).cumprod()
+dd_series = cum_return / cum_return.cummax() - 1
 render_drawdown_chart(f"Excess Return Drawdowns ({dd_freq})", dd_series)
 
 st.markdown("---")
@@ -78,5 +84,10 @@ with col1:
                                      "Information Ratio", "Beta", "Drawdown", "Up Capture", "Down Capture", "Turnover"])
 with col2:
     window = st.selectbox("Rolling Window (Months)", [3, 6, 12])
-rolling = pd.Series(np.random.normal(0.8, 0.1, 100), index=dates)
+rolling_map = {
+    "Volatility": stats.rolling_volatility,
+    "Sharpe Ratio": stats.rolling_sharpe,
+    "Information Ratio": stats.rolling_ir,
+}
+rolling = rolling_map.get(metric, stats.rolling_sharpe)  # default fallback
 render_dual_line_chart(f"Rolling {metric} ({window}-Month)", rolling)

@@ -4,12 +4,12 @@ import pandas as pd
 class PerformanceStats:
     def __init__(self, returns_df: pd.DataFrame, trades: pd.DataFrame, positions: pd.DataFrame):
         self.df = returns_df.copy()
-        if "date" in self.df.columns:
-            self.df = self.df.set_index("date")
+        if "Date" in self.df.columns:
+            self.df = self.df.set_index("Date")
         self.strategy_returns = self.df["strategy"]
         self.benchmark_returns = self.df["benchmark"]
         self.trades = trades.copy()
-        self.positions = positions.copy()       # Todo: Need tickers? And cash should be a line item within the holdings
+        self.positions = positions.copy()
 
         self._calculate_performance()
         self._calculate_rolling()
@@ -43,18 +43,55 @@ class PerformanceStats:
         self.rolling_volatility = self.strategy_returns.rolling(window).std() * np.sqrt(252)
 
     def _calculate_trade_summary(self):
-        df = self.trades.copy()
-        df["entry_date"] = pd.to_datetime(df["entry_date"])     # Todo: Not tracking entry and exit date
-        df["exit_date"] = pd.to_datetime(df["exit_date"])
+        trades = self.trades.copy()
+        positions = self.positions.copy()
 
-        total_notional = df["notional"].sum()
-        avg_mv = self.positions["market_value"].abs().mean() if not self.positions.empty else np.nan
-        self.turnover = total_notional / avg_mv if avg_mv != 0 else np.nan
+        # --- Holding period (from positions) ---
+        holding_periods = []
+        positions.sort_values(["Ticker", "Date"], inplace=True)
 
-        self.win_rate = (df["pnl"] > 0).mean() if not df.empty else np.nan
-        self.avg_pnl = df["pnl"].mean() if not df.empty else np.nan
-        self.median_pnl = df["pnl"].median() if not df.empty else np.nan
-        self.holding_period_avg = (df["exit_date"] - df["entry_date"]).dt.days.mean() if not df.empty else np.nan
+        for ticker, group in positions.groupby("Ticker"):
+            group = group.reset_index(drop=True)
+            in_position = False
+            start_date = None
+
+            for i in range(len(group)):
+                weight = group.loc[i, "Weight"]
+                date = group.loc[i, "Date"]
+
+                if not in_position and abs(weight) > 1e-4:
+                    in_position = True
+                    start_date = date
+                elif in_position and abs(weight) <= 1e-4:
+                    end_date = date
+                    holding_periods.append((ticker, (end_date - start_date).days))
+                    in_position = False
+
+            # Still in position at end of sample
+            if in_position:
+                end_date = group["Date"].iloc[-1]
+                holding_periods.append((ticker, (end_date - start_date).days))
+
+        holding_df = pd.DataFrame(holding_periods, columns=["Ticker", "HoldingPeriod"])
+        self.holding_period_avg = holding_df["HoldingPeriod"].mean() if not holding_df.empty else np.nan
+
+        # --- Turnover (from trades) ---
+        trades["Notional"] = trades["Quantity"] * trades["Execution Price"]
+        total_notional = trades["Notional"].sum()
+        avg_mv = positions.groupby("Date")["Market Value"].sum().mean()
+        self.turnover = total_notional / avg_mv if avg_mv and avg_mv != 0 else np.nan
+
+        # --- Win rate, avg/median pnl ---
+        # Approximate PnL: positive for sells where execution price > signal price
+        trades["SignedPnL"] = np.where(
+            trades["Side"] == "BUY",
+            -1 * (trades["Execution Price"] - trades["Signal Price"]) * trades["Quantity"],
+            (trades["Execution Price"] - trades["Signal Price"]) * trades["Quantity"]
+        )
+
+        self.win_rate = (trades["SignedPnL"] > 0).mean() if not trades.empty else np.nan
+        self.avg_pnl = trades["SignedPnL"].mean() if not trades.empty else np.nan
+        self.median_pnl = trades["SignedPnL"].median() if not trades.empty else np.nan
 
     def to_dict(self):
         return {
