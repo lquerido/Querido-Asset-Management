@@ -176,15 +176,17 @@ class BacktestEngine:
         print('Backtest completed.')
         # --- Extract equity curve and returns ---
         account_df = pd.DataFrame(self.account_history).set_index("Date").sort_index()
-        equity_curve = account_df["Total Value"]
-        returns = account_df["Total Value"].pct_change().dropna()
+        # Compute equity curve by summing market value per day
+        equity_curve = account_df.groupby("Date")["Market Value"].sum().sort_index()
+        # Compute returns
+        returns = equity_curve.pct_change().dropna()
 
-        # ⬇️ Convert trade_log to DataFrame
+        # Convert trade_log to DataFrame
         trades_df = pd.DataFrame(self.trade_log)
 
-        # ⬇️ Reconstruct positions_df
+        # Reconstruct positions_df
         # You’ll want to store and return exposures during _log_account
-        positions_df = pd.DataFrame(self.account_history)  # optionally enrich with sector/region etc. elsewhere
+        positions_df = pd.DataFrame(self.account_history)  # Todo: Why do weights not sum to 100%
 
         return returns, equity_curve, trades_df, positions_df
 
@@ -200,20 +202,32 @@ class BacktestEngine:
         })
 
     def _log_account(self, date, prices):
-        holdings_value = sum(qty * prices[ticker] for ticker, qty in self.holdings.items() if ticker in prices)
-        total_value = self.cash + holdings_value
-        gross_exposure = sum(abs(qty * prices[ticker]) for ticker, qty in self.holdings.items() if ticker in prices)
-        net_exposure = sum(qty * prices[ticker] for ticker, qty in self.holdings.items() if ticker in prices)
+        positions = []
+        # Log positions for each asset
+        for ticker, qty in self.holdings.items():
+            if ticker in prices:
+                market_value = qty * prices[ticker]
+                positions.append({
+                    "Date": date,
+                    "Ticker": ticker,
+                    "Market Value": market_value,
+                    "Weight": None  # will fill in below if desired
+                })
 
-        self.account_history.append({
+        # Log cash as a separate position
+        positions.append({
             "Date": date,
-            "Cash": round(self.cash, 2),
-            "Holdings Value": round(holdings_value, 2),
-            "Total Value": round(total_value, 2),
-            "Gross Exposure": round(gross_exposure, 2),
-            "Net Exposure": round(net_exposure, 2)
+            "Ticker": "CASH",
+            "Market Value": self.cash,
+            "Weight": None
         })
+        # Calculate total value to compute weights
+        total_value = sum(p["Market Value"] for p in positions if p["Market Value"] is not None)
+        # Add weights
+        for pos in positions:
+            pos["Weight"] = pos["Market Value"] / total_value if total_value != 0 else 0.0
 
+        self.account_history.extend(positions)
 
 
 def main(tickers, strat, benchmark_ticker, benchmark_strat, start_date, end_date, slippage=0.001, commission=0.0005):
