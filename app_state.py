@@ -9,54 +9,35 @@ from strategies.signal_generation.BuyAndHoldStrategy import BuyAndHoldStrategy
 from strategies.allocations.VolatilityScaledAllocator import VolatilityScaledAllocator
 from strategies.allocations.EqualWeightAllocator import EqualWeightAllocator
 from datasets.GetSeries import GetSeries
+from utils.helper_functions import build_fund_registry
+
 
 @st.cache_data(show_spinner=True)
-def get_performance_stats():
+def get_performance_stats(fund, start_date, end_date):
     tickers = ["AAPL", "MSFT", "GOOG", "TSLA"]
-    start = "2020-01-01"
-    end = "2024-12-31"
-    vol_data = GetSeries(ticker=tickers, start=start, end=end).fetch_volatility()
+    prices = GetSeries(ticker=tickers, start=start_date, end=end_date).fetch_prices()
 
-    mean_rev = InitialiseStrategy(
-        strategy_cls=MeanReversionStrategy,
-        allocator_cls=VolatilityScaledAllocator,
-        tickers=tickers,
-        start=start,
-        end=end,
-        strategy_kwargs={"lookback": 20, "bound": 2},
-        allocator_kwargs={"vol_data": vol_data}
-    )
-    momentum = InitialiseStrategy(
-        strategy_cls=MomentumStrategy,
-        allocator_cls=VolatilityScaledAllocator,
-        tickers=tickers,
-        start=start,
-        end=end,
-        strategy_kwargs={"lookback": 20, "threshold": 0.02},
-        allocator_kwargs={"vol_data": vol_data}
-    )
-
-    capital_allocation = {
-        "mean_reversion": (mean_rev, 0.5),
-        "momentum": (momentum, 0.5)
-    }
-    ensemble = StrategyEnsemble(capital_allocation)
+    fund_registry = build_fund_registry(start_date, end_date, tickers)
+    strat = fund_registry[fund]
 
     benchmark = InitialiseStrategy(
-        strategy_cls=BuyAndHoldStrategy,
+        strategy_cls=MeanReversionStrategy,
         allocator_cls=EqualWeightAllocator,
-        tickers="SPY",
-        start=start,
-        end=end
+        tickers=["SPY"],
+        start=start_date,
+        end=end_date,
+        strategy_kwargs={"lookback": 20, "bound": 1.5},
+        allocator_kwargs={}
     )
 
+    from simulation.StrategyExecution import main as run_backtest
     return run_backtest(
         tickers=tickers,
-        strat=ensemble,
+        strat=strat,
         benchmark_ticker="SPY",
         benchmark_strat=benchmark,
-        start_date=start,
-        end_date=end,
+        start_date=start_date,
+        end_date=end_date,
         slippage=0.001,
         commission=0.0005
     )

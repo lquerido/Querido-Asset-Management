@@ -6,6 +6,39 @@ import datetime
 import datetime
 import streamlit as st
 
+from strategies.InitialiseStrategy import InitialiseStrategy
+from strategies.StrategyEnsemble import StrategyEnsemble
+from strategies.signal_generation.MeanReversionStrategy import MeanReversionStrategy
+from strategies.allocations.EqualWeightAllocator import EqualWeightAllocator
+from datasets.GetSeries import GetSeries
+
+def build_fund_registry(start, end, tickers, vol_data=None):
+    def init_strat(name, weight=1.0):
+        strat = InitialiseStrategy(
+            strategy_cls=MeanReversionStrategy,
+            allocator_cls=EqualWeightAllocator,
+            tickers=tickers,
+            start=start,
+            end=end,
+            strategy_kwargs={"lookback": 20, "bound": 1.5},
+            allocator_kwargs={}
+        )
+        return (strat, weight)
+
+    return {
+        "Querido Capital Fund 1": StrategyEnsemble({
+            "Global Macro": init_strat("Global Macro"),
+        }),
+        "Querido Capital Fund 2": StrategyEnsemble({
+            "Systematic Arbitrage": init_strat("Systematic Arbitrage", 0.5),
+            "Systematic Macro": init_strat("Systematic Macro", 0.5),
+        }),
+        "Querido Capital Fund 3": StrategyEnsemble({
+            "Global Macro": init_strat("Global Macro", 0.4),
+            "Systematic Macro": init_strat("Systematic Macro", 0.6),
+        })
+    }
+
 def render_global_toolbar(fund_list, strategy_list):
     # Sticky toolbar CSS
     st.markdown("""

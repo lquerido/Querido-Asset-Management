@@ -14,8 +14,8 @@ st.set_page_config(layout="wide")
 st.markdown("<h2 style='text-align: center;'>Performance Summary</h2>", unsafe_allow_html=True)
 
 # --- Toolbar ---
-fund_list = ["Querido Global Macro Fund", "Querido Global Macro Fund II", "Querido Global Macro Fund III"]
-strategy_list = ["Global Macro", "Quantitative Equity", "Systematic Macro", "Statistical Arbitrage"]
+fund_list = ["Querido Capital Fund 1", "Querido Capital Fund 2", "Querido Capital Fund 3"]
+strategy_list = ["Global Macro", "Systematic Macro", "Statistical Arbitrage"]
 render_global_toolbar(fund_list, strategy_list)
 
 # --- Global Inputs ---
@@ -30,7 +30,8 @@ level = st.radio("Select Level", ["Composite", "Strategy"], horizontal=True)
 
 # --- Summary Metrics ---
 from app_state import get_performance_stats
-stats = get_performance_stats()
+stats = get_performance_stats(fund, start_date, end_date)
+
 
 metrics = [
     ("Total Return", f"{stats.total_return:.2%}"),
