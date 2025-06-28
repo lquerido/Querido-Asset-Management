@@ -36,11 +36,21 @@ class PerformanceStats:
         self.up_capture = r[b > 0].mean() / b[b > 0].mean() if not b[b > 0].empty else np.nan
         self.down_capture = r[b < 0].mean() / b[b < 0].mean() if not b[b < 0].empty else np.nan
 
-    def _calculate_rolling(self, window=21):
-        self.rolling_sharpe = self.strategy_returns.rolling(window).mean() / self.strategy_returns.rolling(window).std()
-        excess = self.strategy_returns - self.benchmark_returns
-        self.rolling_ir = excess.rolling(window).mean() / excess.rolling(window).std()
-        self.rolling_volatility = self.strategy_returns.rolling(window).std() * np.sqrt(252)
+    def _calculate_rolling(self):
+        windows = {"3M": 63, "6M": 126, "12M": 252}
+        self.rolling_metrics = {}
+
+        for label, win in windows.items():
+            sharpe = self.strategy_returns.rolling(win).mean() / self.strategy_returns.rolling(win).std()
+            ir = (self.strategy_returns - self.benchmark_returns).rolling(win).mean() / \
+                 (self.strategy_returns - self.benchmark_returns).rolling(win).std()
+            vol = self.strategy_returns.rolling(win).std() * np.sqrt(252)
+
+            self.rolling_metrics[label] = {
+                "Sharpe Ratio": sharpe,
+                "Information Ratio": ir,
+                "Volatility": vol
+            }
 
     def _calculate_trade_summary(self):
         trades = self.trades.copy()

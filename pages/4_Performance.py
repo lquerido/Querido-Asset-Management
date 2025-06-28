@@ -80,14 +80,16 @@ st.markdown("---")
 st.markdown("#### Rolling Metric")
 col1, col2 = st.columns(2)
 with col1:
-    metric = st.selectbox("Metric", ["Total Return", "Excess Return", "Volatility", "Sharpe Ratio", "Tracking Error",
-                                     "Information Ratio", "Beta", "Drawdown", "Up Capture", "Down Capture", "Turnover"])
+    # metric = st.selectbox("Metric", ["Total Return", "Excess Return", "Volatility", "Sharpe Ratio", "Tracking Error",
+    #                                  "Information Ratio", "Beta", "Drawdown", "Up Capture", "Down Capture", "Turnover"])
+    metric = st.selectbox("Metric", ["Volatility", "Sharpe Ratio", "Information Ratio"])
 with col2:
     window = st.selectbox("Rolling Window (Months)", [3, 6, 12])
-rolling_map = {
-    "Volatility": stats.rolling_volatility,
-    "Sharpe Ratio": stats.rolling_sharpe,
-    "Information Ratio": stats.rolling_ir,
+metric_map = {
+    "Volatility": stats.rolling_metrics[f"{window}M"]["Volatility"],
+    "Sharpe Ratio": stats.rolling_metrics[f"{window}M"]["Sharpe Ratio"],
+    # "Tracking Error": stats.rolling_metrics[f"{window}M"]["Tracking Error"],
+    "Information Ratio": stats.rolling_metrics[f"{window}M"]["Information Ratio"],
 }
-rolling = rolling_map.get(metric, stats.rolling_sharpe)  # default fallback
+rolling = metric_map.get(metric)
 render_dual_line_chart(f"Rolling {metric} ({window}-Month)", rolling)
