@@ -70,11 +70,18 @@ render_green_bar_chart(f"{bar_freq} Excess Return", bar_series.values, bar_serie
 
 # --- Drawdown Chart ---
 dd_freq = st.selectbox("Drawdown Frequency", ["Monthly", "Quarterly", "Annual"], key="dd_freq")
-cum_return = (1 + stats.strategy_returns).cumprod()
-dd_series = cum_return / cum_return.cummax() - 1
-render_drawdown_chart(f"Excess Return Drawdowns ({dd_freq})", dd_series)
 
-st.markdown("---")
+# Map selection to Pandas frequency string
+freq_map = {
+    "Monthly": "M",
+    "Quarterly": "Q",
+    "Annual": "A"
+}
+resampled_returns = stats.strategy_returns.resample(freq_map[dd_freq]).apply(lambda x: (1 + x).prod() - 1)
+cum_return = (1 + resampled_returns).cumprod()
+dd_series = cum_return / cum_return.cummax() - 1
+
+render_drawdown_chart(f"Excess Return Drawdowns ({dd_freq})", dd_series)
 
 # --- Rolling Metric Selector ---
 st.markdown("#### Rolling Metric")
