@@ -1,46 +1,82 @@
 # helper_functions.py
-import streamlit as st
 import plotly.express as px
 import datetime
-
-import datetime
 import streamlit as st
-
 from strategies.InitialiseStrategy import InitialiseStrategy
 from strategies.StrategyEnsemble import StrategyEnsemble
 from strategies.signal_generation.MeanReversionStrategy import MeanReversionStrategy
 from strategies.allocations.EqualWeightAllocator import EqualWeightAllocator
 from datasets.GetSeries import GetSeries
 
-def build_fund_registry(start, end, tickers, vol_data=None):
-    def init_strat(name, weight=1.0):
+# helper_functions.py
+from strategies.InitialiseStrategy import InitialiseStrategy
+from strategies.StrategyEnsemble import StrategyEnsemble
+from strategies.signal_generation.MeanReversionStrategy import MeanReversionStrategy
+from strategies.signal_generation.MomentumStrategy import MomentumStrategy
+from strategies.allocations.VolatilityScaledAllocator import VolatilityScaledAllocator
+from strategies.allocations.EqualWeightAllocator import EqualWeightAllocator
+from datasets.GetSeries import GetSeries
+
+def build_fund_registry(start, end):        # Todo: Link to config file
+    def init_strat(strategy_cls, allocator_cls, tickers, strat_kwargs, alloc_kwargs, weight):
         strat = InitialiseStrategy(
-            strategy_cls=MeanReversionStrategy,
-            allocator_cls=EqualWeightAllocator,
+            strategy_cls=strategy_cls,
+            allocator_cls=allocator_cls,
             tickers=tickers,
             start=start,
             end=end,
-            strategy_kwargs={"lookback": 20, "bound": 1.5},
-            allocator_kwargs={}
+            strategy_kwargs=strat_kwargs,
+            allocator_kwargs=alloc_kwargs
         )
-        return (strat, weight)
+        return strat, weight
+
+    # Example volatility data for volatility-scaled allocator
+    tickers1 = ["HE=F", "KC=F", "LE=F"]
+    tickers2 = ["SGR.AX", "CHN.AX", "TLS.XA"]
+    vol_data_1 = GetSeries(ticker=tickers1, start=start, end=end).fetch_volatility()
+    vol_data_2 = GetSeries(ticker=tickers2, start=start, end=end).fetch_volatility()
 
     return {
         "Querido Capital Fund 1": StrategyEnsemble({
-            "Global Macro": init_strat("Global Macro"),
+            "Momentum": init_strat(
+                MomentumStrategy, VolatilityScaledAllocator, tickers1,
+                {"lookback": 20, "threshold": 0.02},
+                {"vol_data": vol_data_1},
+                0.4
+            ),
+            "Mean Reversion": init_strat(
+                MeanReversionStrategy, VolatilityScaledAllocator, tickers2,
+                {"lookback": 20, "bound": 1.5},
+                {"vol_data": vol_data_2},
+                0.6
+            ),
         }),
         "Querido Capital Fund 2": StrategyEnsemble({
-            "Systematic Arbitrage": init_strat("Systematic Arbitrage", 0.5),
-            "Systematic Macro": init_strat("Systematic Macro", 0.5),
+            "Momentum": init_strat(
+                MomentumStrategy, VolatilityScaledAllocator, tickers1,
+                {"lookback": 20, "threshold": 0.02},
+                {"vol_data": vol_data_1},
+                0.8
+            ),
+            "Mean Reversion": init_strat(
+                MeanReversionStrategy, VolatilityScaledAllocator, tickers2,
+                {"lookback": 20, "bound": 1.5},
+                {"vol_data": vol_data_2},
+                0.2
+            ),
         }),
         "Querido Capital Fund 3": StrategyEnsemble({
-            "Global Macro": init_strat("Global Macro", 0.4),
-            "Systematic Macro": init_strat("Systematic Macro", 0.6),
-        })
+            "Mean Reversion": init_strat(
+                MeanReversionStrategy, EqualWeightAllocator, ["AAPL", "MSFT", "TSLA"],
+                {"lookback": 20, "bound": 2.0},
+                {},
+                1.0
+            ),
+        }),
     }
 
-def render_global_toolbar(fund_list, strategy_list):
-    # Sticky toolbar CSS
+
+def render_global_toolbar(fund_registry):
     st.markdown("""
         <style>
             .toolbar {
@@ -55,13 +91,16 @@ def render_global_toolbar(fund_list, strategy_list):
         </style>
     """, unsafe_allow_html=True)
 
-    # Toolbar container
     st.markdown('<div class="toolbar">', unsafe_allow_html=True)
+
+    fund_list = list(fund_registry.keys())
 
     # First row: Fund & Strategy
     col1, col2 = st.columns(2)
     with col1:
         st.selectbox("Fund", fund_list, key="fund")
+    selected_fund = st.session_state.get("fund", fund_list[0])
+    strategy_list = list(fund_registry[selected_fund].capital_allocation.keys())
     with col2:
         st.selectbox("Strategy", strategy_list, key="strategy")
 

@@ -9,28 +9,45 @@ from utils.helper_functions import (
     render_green_bar_chart,
     render_drawdown_chart
 )
+from utils.helper_functions import build_fund_registry
 
 st.set_page_config(layout="wide")
 st.markdown("<h2 style='text-align: center;'>Performance Summary</h2>", unsafe_allow_html=True)
 
 # --- Toolbar ---
-fund_list = ["Querido Capital Fund 1", "Querido Capital Fund 2", "Querido Capital Fund 3"]
-strategy_list = ["Global Macro", "Systematic Macro", "Statistical Arbitrage"]
-render_global_toolbar(fund_list, strategy_list)
+start_date = st.session_state.get("start_date", "2020-01-01")
+end_date = st.session_state.get("end_date", "2024-12-31")
+fund_registry = build_fund_registry(start_date, end_date)       # Todo: Why do we need start and end date?
+render_global_toolbar(fund_registry)
 
 # --- Global Inputs ---
-fund = st.session_state.get("fund", "Fund A")
-strategy = st.session_state.get("strategy", "Strategy X")
+# fund = st.session_state.get("fund", "Fund A")
+# strategy = st.session_state.get("strategy", "Strategy X")
 pit_date = st.session_state.get("pit_date")
-start_date = st.session_state.get("start_date")
-end_date = st.session_state.get("end_date")
+# start_date = st.session_state.get("start_date")
+# end_date = st.session_state.get("end_date")
 
 # --- Toggle: Composite vs Strategy ---
-level = st.radio("Select Level", ["Composite", "Strategy"], horizontal=True)
+st.radio(
+    "Select Level",
+    ["Composite", "Strategy"],
+    horizontal=True,
+    key="level"  # stores in session_state
+)
 
 # --- Summary Metrics ---
 from app_state import get_performance_stats
-stats = get_performance_stats(fund, start_date, end_date)
+
+# Assume these are set correctly in session state
+fund = st.session_state.get("fund", "Querido Capital Fund 1")
+level = st.session_state.get("level", "Composite")  # "Composite" or "Strategy"
+strategy = st.session_state.get("strategy", "Global Macro")  # Needed if Strategy-level is selected
+
+# Call once
+all_stats = get_performance_stats(fund, start_date, end_date)
+
+# Pick composite or strategy
+stats = all_stats["composite"] if level == "Composite" else all_stats["strategies"][strategy]
 
 
 metrics = [
